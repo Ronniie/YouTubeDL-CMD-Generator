@@ -20,7 +20,7 @@ That's all! Enjoy my laziness..
 
 ### Feature's I'll be adding.
 These are the features I'll be adding.
-[ ] Exclude files
-[ ] Search
-[ ] Full series download
-[ ] Movie download
+- [ ] Exclude files
+- [ ] Search
+- [ ] Full series download
+- [ ] Movie download
