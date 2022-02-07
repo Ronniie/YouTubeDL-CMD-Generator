@@ -8,8 +8,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
+opts = Options()
+opts.add_argument('--headless')
 
-def get_soup(URL, xpath, driver):
+def get_soup(URL, xpath):
+    driver = webdriver.Chrome(options=opts)
     driver.get(URL)
     try:
         WebDriverWait(driver, 60).until(lambda driver: driver.find_element(By.XPATH, xpath))
@@ -18,12 +21,10 @@ def get_soup(URL, xpath, driver):
         driver.quit()
         exit()
     soup = BeautifulSoup(driver.page_source, "html.parser")
+    driver.quit()
     return soup
 
 
-opts = Options()
-opts.add_argument('--headless')
-driver = webdriver.Chrome(options=opts)
 
 while True:
     print("Please enter the URL")
@@ -34,15 +35,14 @@ while True:
     else:
         break
 
-soup = get_soup(URL, '//*[@id="list"]/a', driver)
+soup = get_soup(URL, '//*[@id="list"]/a')
 query = soup.find_all("div", {"class": "list-group text-break"})
-z = 0
+
 query_list = []
 for i in query:
     for j in i.find_all("a"):
         query_list.append(j.text.strip())
-        print(f"{z}) {j.text}")
-        z += 1
+        print(f"{query_list.index(j.text.strip())}) {j.text}")
 
 while True:
     print("Select the content:")
@@ -52,29 +52,26 @@ while True:
         continue
     else:
         break
-driver.quit()
-driver = webdriver.Chrome(options=opts)
+
 selection = query_list[select].replace(" ", "%20")
-url = f"{URL}{query_list[select].replace(' ', '%20')}/"
-soup = get_soup(url, '//*[@id="list"]/div/a', driver)
+soup = get_soup(
+    f"{URL}{query_list[select].replace(' ', '%20')}/",
+    '//*[@id="list"]/div/a'
+)
 query = soup.find_all("div", {"class": "list-group text-break"})
-driver.quit()
+
 video_list = []
-z = 0
 for i in query:
     for j in i.find_all("a"):
         if j.text.strip() == "":
             pass
         else:
-            driver = webdriver.Chrome(options=opts)
             url = f"{URL}/{selection}/{j.text.strip().replace(' ', '%20')}?a=view"
-            print(f"{z}) Grabbing {j.text.strip()}...")
-            soup = get_soup(url, '//*[@id="dlurl"]', driver)
+            print(f"Grabbing {j.text.strip()}...")
+            soup = get_soup(url, '//*[@id="dlurl"]')
             query = soup.find("input", {"id": "dlurl"})
-            print(f"{z}) Adding {j.text.strip()} to list...")
             video_list.append(query["value"])
-            driver.quit()
-            z += 1
+            print(f"{video_list.index(query['value'])}) Adding {j.text.strip()} to list...")
 
 with open("urls.txt", "w") as f:
     if os.stat("urls.txt").st_size != 0:
