@@ -1,41 +1,61 @@
 # YouTubeDL-CMD-Generator - Generates a command line for youtube-dl
 # It will scrape a specific URL and generate a command line for youtube-dl
 import os
+
+# BeautifulSoup
 from bs4 import BeautifulSoup
 import chromedriver_binary  # pip3 install chromedriver-binary==your_version in chrome://settings/help
+
+# Selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
-opts = Options()
-opts.add_argument('--headless')
+opts = Options() # Create a new Chrome session
+opts.add_argument('--headless') # Runs Chrome in headless mode.
 
-def get_soup(URL, xpath):
+
+def get_soup(url, xpath):
+    """
+    Gets the soup object from the url
+    :param url:
+    :param xpath:
+    :return:
+    """
+    # Create a new Chrome session
     driver = webdriver.Chrome(options=opts)
-    driver.get(URL)
-    try:
-        WebDriverWait(driver, 60).until(lambda driver: driver.find_element(By.XPATH, xpath))
-    except:
+    # Load the page
+    driver.get(url)
+    try:  # Wait for the page to load
+        WebDriverWait(driver, 60).until(lambda d: d.find_element(By.XPATH, xpath))
+    except:  # If it fails, return None
         print("Error: No results found")
         driver.quit()
         exit()
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    driver.quit()
-    return soup
 
+    # Get the page source and create a soup object
+    html = BeautifulSoup(driver.page_source, "html.parser")
+    # Close the browser
+    driver.quit()
+    # Return the soup object
+    return html
 
 
 while True:
+    """
+    Main loop
+    Enter the URL
+    """
     print("Please enter the URL")
-    URL = input()
-    if URL == "":
+    source = input()
+    if source == "":
         print("Invalid URL")
         continue
     else:
         break
 
-soup = get_soup(URL, '//*[@id="list"]/a')
+soup = get_soup(source, '//*[@id="list"]/a')
 query = soup.find_all("div", {"class": "list-group text-break"})
 
 query_list = []
@@ -53,29 +73,30 @@ while True:
     else:
         break
 
-selection = query_list[select].replace(" ", "%20")
+selection = query_list[select].replace(" ", "%20")  # Replace spaces with %20
 soup = get_soup(
-    f"{URL}{query_list[select].replace(' ', '%20')}/",
-    '//*[@id="list"]/div/a'
-)
-query = soup.find_all("div", {"class": "list-group text-break"})
+    f"{source}{query_list[select].replace(' ', '%20')}/",  # URL
+    '//*[@id="list"]/div/a'  # XPath
+)  # Get the soup object
+query = soup.find_all("div", {"class": "list-group text-break"})  # Get the list of episodes from the soup object
 
-video_list = []
+video_list = []  # List of videos
 for i in query:
-    for j in i.find_all("a"):
-        if j.text.strip() == "":
+    for j in i.find_all("a"):  # Get the links from the soup object
+        if j.text.strip() == "":  # If the link is empty, skip it
             pass
-        else:
-            url = f"{URL}/{selection}/{j.text.strip().replace(' ', '%20')}?a=view"
-            print(f"Grabbing {j.text.strip()}...")
-            soup = get_soup(url, '//*[@id="dlurl"]')
-            query = soup.find("input", {"id": "dlurl"})
-            video_list.append(query["value"])
-            print(f"{video_list.index(query['value'])}) Adding {j.text.strip()} to list...")
+        else:  # If the link is not empty, add it to the list
+            url = f"{source}/{selection}/{j.text.strip().replace(' ', '%20')}?a=view"  # URL
+            print(f"Grabbing {j.text.strip()}...")  # Print the video name
+            soup = get_soup(url, '//*[@id="dlurl"]')  # Get the soup object
+            query = soup.find("input", {"id": "dlurl"})  # Get the link from the soup object
+            video_list.append(query["value"])  # Add the link to the list
+            print(f"{video_list.index(query['value'])}) Adding {j.text.strip()} to list...")  # Print the video name
 
-with open("urls.txt", "w") as f:
-    if os.stat("urls.txt").st_size != 0:
-        f.truncate()
+with open("urls.txt", "w") as f:  # Open the file
+    if os.stat("urls.txt").st_size != 0:  # If the file is not empty
+        f.truncate()  # Clear the file
 
-    for i in video_list:
+    for i in video_list:  # Write the commands to the file
+        # If it is the last video, don't add the &&
         f.write(f'youtube-dl "{i}"') if i == video_list[-1] else f.write(f'youtube-dl "{i}" && ')
